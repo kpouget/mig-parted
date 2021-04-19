@@ -1,0 +1,30 @@
+ARG BUILD_IMAGE=undefined
+ARG RELEASE_IMAGE=undefined
+ARG GOLANG_VERSION=1.15
+
+FROM quay.io/openshift-psap/golang:${GOLANG_VERSION} as build
+
+WORKDIR /go/src/mig-parted
+COPY . .
+RUN go install ./cmd/nvidia-mig-parted
+
+FROM quay.io/openshift-psap/golang:${GOLANG_VERSION}
+
+ENV NVIDIA_DISABLE_REQUIRE="true"
+ENV NVIDIA_VISIBLE_DEVICES=all
+ENV NVIDIA_MIG_CONFIG_DEVICES=all
+ENV NVIDIA_DRIVER_CAPABILITIES=utility
+
+ARG VERSION="N/A"
+LABEL version=${VERSION}
+LABEL release="N/A"
+LABEL vendor="NVIDIA"
+LABEL io.k8s.display-name="NVIDIA MIG Partition Editor"
+LABEL name="NVIDIA MIG Partition Editor"
+LABEL summary="NVIDIA MIG Partition Editor"
+LABEL description="See summary"
+
+COPY ./LICENSE ./licenses/LICENSE
+COPY --from=build /go/bin/nvidia-mig-parted /usr/bin/nvidia-mig-parted
+
+ENTRYPOINT ["nvidia-mig-parted"]
